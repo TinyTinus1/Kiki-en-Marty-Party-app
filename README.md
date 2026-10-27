@@ -89,8 +89,10 @@ Voer de test niet uit op een omgeving waar de twee echte leden al bestaan.
 SMTP en de serversecrets zijn in het nieuwe project ingesteld. Na het invoeren
 van een geldig appwachtwoord is de echte inlogmail op 27 oktober 2026 zonder
 SMTP-fout verstuurd. De bevestigingsmail voor nieuwe accounts bevat een code.
-De achtergrondtaak is geactiveerd; echte aflevering van een achtergrondmelding
-wordt nog gecontroleerd tijdens de eerste aanmelding.
+De achtergrondtaak is geactiveerd. Marty's eerste account is via de echte
+bevestigingscode aangemeld; de verjaardag is automatisch aangemaakt. De
+welkomstmail is vervolgens door de worker succesvol verstuurd (processed=1,
+sent=1). Dit bevestigt SMTP-verzending, niet de plaatsing in de inbox.
 
 1. Stel bij Authentication → Emails → SMTP Settings een eigen mailprovider in.
 2. Gebruik voor Confirm sign up het sjabloon uit `signup-email.html`. Magic link
