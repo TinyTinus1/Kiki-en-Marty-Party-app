@@ -86,9 +86,11 @@ Voer de test niet uit op een omgeving waar de twee echte leden al bestaan.
 
 ### Nog in te stellen voor echte e-mail
 
-SMTP en de serversecrets zijn in het nieuwe project ingevuld. De eerste echte
-inlogtest is door Gmail geweigerd met fout 534 (een appwachtwoord is vereist).
-Mailaflevering moet na het corrigeren van het appwachtwoord nog worden bevestigd.
+SMTP en de serversecrets zijn in het nieuwe project ingesteld. Na het invoeren
+van een geldig appwachtwoord is de echte inlogmail op 27 oktober 2026 zonder
+SMTP-fout verstuurd. De bevestigingsmail voor nieuwe accounts bevat een code.
+De achtergrondtaak is geactiveerd; echte aflevering van een achtergrondmelding
+wordt nog gecontroleerd tijdens de eerste aanmelding.
 
 1. Stel bij Authentication → Emails → SMTP Settings een eigen mailprovider in.
 2. Gebruik voor Confirm sign up het sjabloon uit `signup-email.html`. Magic link
