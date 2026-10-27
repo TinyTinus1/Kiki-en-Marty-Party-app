@@ -1,12 +1,18 @@
 begin;
+create table duo_private.mail_batches(id uuid primary key default gen_random_uuid(),created_at timestamptz not null default now());
+alter table duo_private.mail_batches enable row level security;
+revoke all on duo_private.mail_batches from public,anon,authenticated;
+create policy deny_client on duo_private.mail_batches for all to anon,authenticated using(false) with check(false);
 create function duo_private.claim_mail() returns jsonb language plpgsql security definer set search_path='' as $$
-declare j duo_private.mail_jobs; token uuid; jobs jsonb:='[]'; recipient text; person_name text; item jsonb; remaining int;
+declare j duo_private.mail_jobs; batch record; token uuid; jobs jsonb:='[]'; recipient text; person_name text; item jsonb; remaining int;
 begin
   if (current_setting('request.jwt.claims',true)::jsonb->>'role') is distinct from 'service_role' then raise exception 'Geen toegang';end if;
   perform pg_advisory_xact_lock(746292);
   update duo_private.mail_jobs set status='failed' where status='sending' and attempts>=5 and claimed_at<now()-interval '10 minutes';
-  remaining:=greatest(0,100-(select coalesce(sum(attempts),0) from duo_private.mail_jobs where claimed_at>now()-interval '1 day'));
-  for j in select * from duo_private.mail_jobs where ((status='pending' and next_attempt_at<=now()) or (status='sending' and claimed_at<now()-interval '10 minutes')) and attempts<5 order by created_at for update skip locked limit least(remaining,100) loop
+  remaining:=greatest(0,100-(select count(*) from duo_private.mail_batches where created_at>now()-interval '1 day'));
+  for batch in select recipient_id,kind from duo_private.mail_jobs where ((status='pending' and next_attempt_at<=now()) or (status='sending' and claimed_at<now()-interval '10 minutes')) and attempts<5 group by recipient_id,kind order by min(created_at) limit least(remaining,5) loop
+  insert into duo_private.mail_batches default values;
+  for j in select * from duo_private.mail_jobs where recipient_id=batch.recipient_id and kind=batch.kind and ((status='pending' and next_attempt_at<=now()) or (status='sending' and claimed_at<now()-interval '10 minutes')) and attempts<5 order by created_at for update skip locked limit 200 loop
     select u.email,m.display_name into recipient,person_name from public.members m join auth.users u on u.id=m.user_id where m.user_id=j.recipient_id and u.email_confirmed_at is not null;
     if recipient is null then update duo_private.mail_jobs set status='skipped' where id=j.id;continue;end if;
     item:=null;
@@ -17,6 +23,7 @@ begin
     token:=gen_random_uuid();
     update duo_private.mail_jobs set status='sending',attempts=attempts+1,claimed_at=now(),lease=token where id=j.id;
     jobs:=jobs||jsonb_build_array(jsonb_build_object('id',j.id,'lease',token,'recipient',recipient,'name',person_name,'kind',j.kind,'item',item));
+  end loop;
   end loop;return jobs;
 end;$$;
 revoke all on function duo_private.claim_mail() from public,anon,authenticated;

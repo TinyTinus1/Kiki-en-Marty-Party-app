@@ -49,7 +49,6 @@ import { demoData } from "./demo";
 import { registerSW } from "virtual:pwa-register";
 import type {
   AccessRequest,
-  Member,
   Occurrence,
   Persona,
   Plan,
@@ -72,6 +71,12 @@ function message(error: unknown) {
       : typeof error === "object" && error && "message" in error
         ? String(error.message)
         : "De verbinding is onderbroken. Probeer opnieuw.";
+  if (/Error sending (confirmation|magic link|recovery) email/i.test(text))
+    return "De inlogmail kon niet worden verstuurd. Probeer het later opnieuw.";
+  if (/rate limit|too many requests|security purposes/i.test(text))
+    return "Er zijn te snel meerdere e-mails aangevraagd. Wacht even en probeer opnieuw.";
+  if (/duplicate key|unique constraint/i.test(text))
+    return "Deze gegevens bestaan al. Vernieuw de agenda om de huidige status te bekijken.";
   return text.includes("fetch")
     ? "Geen verbinding. Controleer je internet en probeer opnieuw."
     : text;

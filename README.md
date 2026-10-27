@@ -86,8 +86,9 @@ Voer de test niet uit op een omgeving waar de twee echte leden al bestaan.
 
 ### Nog in te stellen voor echte e-mail
 
-Het nieuwe project neemt SMTP-instellingen en serversecrets niet over van de oude
-agenda. Mailverzending is daarom nog niet geactiveerd en niet end-to-end getest.
+SMTP en de serversecrets zijn in het nieuwe project ingevuld. De eerste echte
+inlogtest is door Gmail geweigerd met fout 534 (een appwachtwoord is vereist).
+Mailaflevering moet na het corrigeren van het appwachtwoord nog worden bevestigd.
 
 1. Stel bij Authentication → Emails → SMTP Settings een eigen mailprovider in.
 2. Gebruik voor Confirm sign up het sjabloon uit `signup-email.html`. Magic link
@@ -102,7 +103,8 @@ agenda. Mailverzending is daarom nog niet geactiveerd en niet end-to-end getest.
 
 De database bepaalt ontvangers en inhoud. De worker accepteert geen adressen of
 mailinhoud van de aanroeper. Mailtaken proberen maximaal vijf keer; fouten worden
-na oplopende wachttijd opnieuw geprobeerd. Dagbudget: maximaal 100 claims.
+na oplopende wachttijd opnieuw geprobeerd. Dagbudget: maximaal 100 mailbatches;
+een batch bevat maximaal 200 activiteiten voor dezelfde ontvanger.
 Mails gaan alleen over nieuwe activiteiten, aanvragen en goedkeuringen; wijzigingen,
 afgelastingen en herinneringen sturen in deze versie geen aparte mail.
 
