@@ -13,6 +13,23 @@ const job: Job = {
   },
 };
 describe("meldingsmails", () => {
+  it("toont hele dag zonder een misleidende middernachttijd", () => {
+    const result = render(
+      [
+        {
+          ...job,
+          item: {
+            ...job.item,
+            starts_at: "2026-10-24T22:00:00Z",
+            all_day: true,
+          },
+        },
+      ],
+      "https://example.com/",
+    );
+    expect(result.html).toContain("Hele dag");
+    expect(result.html).not.toContain("00:00");
+  });
   it("escaped alle gebruikersinhoud en bundelt meerdere activiteiten", () => {
     const result = render(
       [job, { ...job, id: "second" }],

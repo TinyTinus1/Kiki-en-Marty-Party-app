@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { expand, toInstant, localInput } from "./calendar";
+import {
+  expand,
+  toInstant,
+  localInput,
+  activityTimes,
+  shiftDate,
+} from "./calendar";
 import { ical, parseCalendar, exportPlan } from "./ical";
 import type { Plan } from "./types";
 const plan: Plan = {
@@ -89,6 +95,22 @@ describe("herhaalreeksen en aanwezigheid", () => {
   });
 });
 describe("iCalendar import en export", () => {
+  it("bewaart een hele dag tijdens wintertijd en exporteert exclusieve einddatums", () => {
+    const times = activityTimes("2026-10-25", "2026-10-25", true);
+    expect(Date.parse(times.ends_at) - Date.parse(times.starts_at)).toBe(
+      25 * 3600000,
+    );
+    const p = { ...plan, ...times, all_day: true, recurrence: "none" as const };
+    expect(ical([p])).toContain(
+      "DTSTART;VALUE=DATE:20261025\r\nDTEND;VALUE=DATE:20261026",
+    );
+    expect(shiftDate(localInput(p.ends_at).slice(0, 10), -1)).toBe(
+      "2026-10-25",
+    );
+    expect(() => activityTimes("2026-10-26", "2026-10-25", true)).toThrow(
+      "einddatum",
+    );
+  });
   it("importeert losse afspraken met tekstescaping en voorkomt dubbelen in een bestand", async () => {
     const p = { ...plan, recurrence: "none" as const };
     const text = ical([p, p]);

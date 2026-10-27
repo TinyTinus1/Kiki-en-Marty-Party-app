@@ -31,6 +31,8 @@ SMTP-wachtwoorden horen uitsluitend in Supabase serversecrets.
 
 - Maandkalender met dagselectie, maandnavigatie en vandaagknop.
 - Activiteiten toevoegen, bewerken en verwijderen met plaats en omschrijving.
+- Optie Hele dag, met een begin- en inclusieve einddatum. Export gebruikt correcte
+  hele-dagdatums, ook rond zomer- en wintertijd.
 - Dagelijkse, wekelijkse en jaarlijkse reeksen in Europe/Amsterdam.
 - Jaarlijkse verjaardagen na het afronden en goedkeuren van een account.
 - Aanwezigheid per datum of voor een volledige reeks, met uitzonderingen per datum.

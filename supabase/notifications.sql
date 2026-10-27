@@ -16,7 +16,7 @@ begin
     select u.email,m.display_name into recipient,person_name from public.members m join auth.users u on u.id=m.user_id where m.user_id=j.recipient_id and u.email_confirmed_at is not null;
     if recipient is null then update duo_private.mail_jobs set status='skipped' where id=j.id;continue;end if;
     item:=null;
-    if j.kind='activity' then select jsonb_build_object('title',title,'starts_at',starts_at,'location',location) into item from public.events where id=j.event_id;
+    if j.kind='activity' then select jsonb_build_object('title',title,'starts_at',starts_at,'all_day',all_day,'location',location) into item from public.events where id=j.event_id;
     elsif j.kind='request' then select jsonb_build_object('name',display_name) into item from public.access_requests where user_id=j.request_user_id and status='pending';
     else select jsonb_build_object('name',display_name) into item from public.access_requests where user_id=j.request_user_id and status='approved';end if;
     if item is null then update duo_private.mail_jobs set status='skipped' where id=j.id;continue;end if;

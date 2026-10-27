@@ -7,6 +7,7 @@ export type Job = {
   item: {
     title?: string;
     starts_at?: string;
+    all_day?: boolean;
     location?: string;
     name?: string;
   };
@@ -38,7 +39,7 @@ export function render(jobs: Job[], site: string) {
           jobs
             .map(
               (j) =>
-                `<li><strong>${html(j.item.title || "Activiteit")}</strong><br/>${html(new Intl.DateTimeFormat("nl-NL", { timeZone: "Europe/Amsterdam", dateStyle: "full", timeStyle: "short" }).format(new Date(j.item.starts_at!)))}${j.item.location ? "<br/>" + html(j.item.location) : ""}</li>`,
+                `<li><strong>${html(j.item.title || "Activiteit")}</strong><br/>${html(new Intl.DateTimeFormat("nl-NL", { timeZone: "Europe/Amsterdam", dateStyle: "full", ...(j.item.all_day ? {} : { timeStyle: "short" as const }) }).format(new Date(j.item.starts_at!)))}${j.item.all_day ? " · Hele dag" : ""}${j.item.location ? "<br/>" + html(j.item.location) : ""}</li>`,
             )
             .join("") +
           "</ul>";

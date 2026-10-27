@@ -15,6 +15,17 @@ export const toInstant = (local: string) =>
     .toZonedDateTime(zone, { disambiguation: "later" })
     .toInstant()
     .toString();
+export const shiftDate = (date: string, days: number) =>
+  Temporal.PlainDate.from(date).add({ days }).toString();
+// Date ranges shown to people include the last day. iCalendar ends are exclusive.
+export function activityTimes(start: string, end: string, allDay: boolean) {
+  if (allDay && end < start)
+    throw new Error("De einddatum mag niet vóór de begindatum liggen.");
+  return {
+    starts_at: toInstant(allDay ? start + "T00:00" : start),
+    ends_at: toInstant(allDay ? shiftDate(end, 1) + "T00:00" : end),
+  };
+}
 export const formatDate = (iso: string, options: Intl.DateTimeFormatOptions) =>
   new Intl.DateTimeFormat("nl-NL", { timeZone: zone, ...options }).format(
     new Date(iso),

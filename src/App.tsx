@@ -37,6 +37,8 @@ import {
   overlapsDay,
   repeatLabel,
   toInstant,
+  shiftDate,
+  activityTimes,
 } from "./calendar";
 import {
   downloadCalendar,
@@ -160,14 +162,31 @@ function EventEditor({
     [error, setError] = useState(""),
     [deleting, setDeleting] = useState(false);
   const [locationText, setLocationText] = useState(plan?.location || "");
+  const [allDay, setAllDay] = useState(plan?.all_day || false);
+  const [starts, setStarts] = useState(
+    plan
+      ? localInput(plan.starts_at).slice(0, 10) +
+          (plan.all_day ? "T19:00" : localInput(plan.starts_at).slice(10))
+      : day + "T19:00",
+  );
+  const [ends, setEnds] = useState(
+    plan
+      ? plan.all_day
+        ? shiftDate(localInput(plan.ends_at).slice(0, 10), -1) + "T21:00"
+        : localInput(plan.ends_at)
+      : day + "T21:00",
+  );
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setBusy(true);
     setError("");
     try {
       const f = new FormData(e.currentTarget),
-        starts_at = toInstant(String(f.get("starts"))),
-        ends_at = toInstant(String(f.get("ends"))),
+        { starts_at, ends_at } = activityTimes(
+          String(f.get("starts")),
+          String(f.get("ends")),
+          allDay,
+        ),
         recurrence = String(f.get("recurrence") || "yearly") as Recurrence;
       if (Date.parse(ends_at) <= Date.parse(starts_at))
         throw new Error("De eindtijd moet na de begintijd liggen.");
@@ -187,7 +206,7 @@ function EventEditor({
         location: locationText.trim(),
         description: String(f.get("description")).trim(),
         recurrence,
-        all_day: plan?.all_day || false,
+        all_day: allDay,
       });
       onClose();
     } catch (e) {
@@ -214,28 +233,53 @@ function EventEditor({
             defaultValue={plan?.title}
           />
         </label>
+        <label className="check-label">
+          <input
+            type="checkbox"
+            checked={allDay}
+            disabled={!!plan?.birthday_user_id}
+            onChange={(e) => setAllDay(e.target.checked)}
+          />
+          Hele dag
+        </label>
         <div className="form-grid">
           <label>
             Begint op
             <input
               name="starts"
-              type="datetime-local"
+              type={allDay ? "date" : "datetime-local"}
               required
               readOnly={!!plan?.birthday_user_id}
-              defaultValue={plan ? localInput(plan.starts_at) : day + "T19:00"}
+              value={allDay ? starts.slice(0, 10) : starts}
+              onChange={(e) =>
+                setStarts(
+                  allDay ? e.target.value + starts.slice(10) : e.target.value,
+                )
+              }
             />
           </label>
           <label>
-            Eindigt op
+            {allDay ? "Tot en met" : "Eindigt op"}
             <input
               name="ends"
-              type="datetime-local"
+              type={allDay ? "date" : "datetime-local"}
               required
               readOnly={!!plan?.birthday_user_id}
-              defaultValue={plan ? localInput(plan.ends_at) : day + "T21:00"}
+              value={allDay ? ends.slice(0, 10) : ends}
+              onChange={(e) =>
+                setEnds(
+                  allDay ? e.target.value + ends.slice(10) : e.target.value,
+                )
+              }
             />
           </label>
         </div>
+        {allDay && (
+          <p className="help">
+            De activiteit geldt voor de volledige dag, inclusief de datum bij
+            ‘Tot en met’.
+          </p>
+        )}
         <label>
           Herhalen
           <select
