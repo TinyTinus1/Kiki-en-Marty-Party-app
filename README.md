@@ -108,15 +108,16 @@ afgelastingen en herinneringen sturen in deze versie geen aparte mail.
 
 ### Hosting
 
-De repository blijft privé. GitHub Pages is bij het huidige abonnement alleen
-beschikbaar na openbaar maken van de repository of een betaald GitHub-abonnement.
-Publiceer daarom pas nadat de gebruiker een hostingkeuze heeft gemaakt.
-`pages.yml` bevat een handmatig te starten publicatieworkflow, met het juiste
-repositorypad. `ci.yml` controleert tests en build op pushes en pull requests.
+De gebruiker heeft op 27 oktober 2026 toestemming gegeven om de broncode openbaar
+te maken en gratis via GitHub Pages te publiceren. Accounts en agendagegevens
+blijven afgeschermd in Supabase. `pages.yml` publiceert geteste builds vanaf main
+en kan ook handmatig worden gestart. `ci.yml` controleert tests en build op
+pushes en pull requests.
 
-De Site URL staat voor lokale ontwikkeling op `http://127.0.0.1:5173/`.
-Stel bij publicatie de definitieve HTTPS-URL in als Supabase Site URL én Redirect
-URL, met repositorypad en afsluitende slash. Alleen daarna kloppen de inloglinks.
+De publicatie-URL is `https://tinytinus1.github.io/Kiki-en-Marty-Party-app/`.
+Dit adres hoort als Supabase Site URL én Redirect URL ingesteld te zijn, met
+repositorypad en afsluitende slash. Lokale ontwikkeling gebruikt daarnaast
+`http://127.0.0.1:5173/` als toegestane Redirect URL.
 
 Op iPhone: open de HTTPS-app in Safari → Deel → Zet op beginscherm.
 
