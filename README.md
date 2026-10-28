@@ -38,7 +38,9 @@ SMTP-wachtwoorden horen uitsluitend in Supabase serversecrets.
 - Aanwezigheid per datum of voor een volledige reeks, met uitzonderingen per datum.
 - Kiki is paars, Marty is oranje. Wanneer beiden aanwezig zijn, krijgt de
   activiteit beide kleuren. De maker blijft onveranderd bij bewerkingen.
-- Inloggen met e-mail; nieuwe accounts gebruiken een bevestigingscode.
+- Inloggen met een e-mailcode voor zowel nieuwe als bestaande accounts. Vraag de
+  code aan vanuit de geïnstalleerde app en vul hem daar in; mail-links hoeven de
+  app op het iPhone-startscherm niet meer te openen.
 - Twee vooraf uitgenodigde e-mailadressen met gelijke beheerrechten. Het eerste
   account wordt alleen via een serveruitnodiging toegelaten; het tweede wacht
   op goedkeuring. De client kan geen leden of rollen toekennen.
@@ -97,8 +99,9 @@ welkomstmail is vervolgens door de worker succesvol verstuurd (processed=1,
 sent=1). Dit bevestigt SMTP-verzending, niet de plaatsing in de inbox.
 
 1. Stel bij Authentication → Emails → SMTP Settings een eigen mailprovider in.
-2. Gebruik voor Confirm sign up het sjabloon uit `signup-email.html`. Magic link
-   or OTP blijft `{{ .ConfirmationURL }}` gebruiken voor bestaande accounts.
+2. Gebruik voor Confirm sign up het sjabloon uit `signup-email.html` en voor
+   Magic link or OTP het sjabloon uit `login-email.html`. Beide bevatten
+   `{{ .Token }}` en geen inloglink.
 3. De notify-worker is gedeployd met JWT-controle. Zet in Edge Functions → Secrets:
    `AGENDA_SMTP_USER`, `AGENDA_SMTP_PASSWORD`, `AGENDA_SITE_URL` (de definitieve HTTPS
    app-URL). Optioneel: `AGENDA_SMTP_HOST` (standaard smtp.gmail.com) en

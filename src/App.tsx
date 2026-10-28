@@ -408,14 +408,29 @@ function ExportDialog({
         return "apple";
       }
     }),
-    [remember, setRemember] = useState(true),
-    [done, setDone] = useState(false);
-  function submit(e: FormEvent) {
-    e.preventDefault();
+    [remember, setRemember] = useState(() => {
+      try {
+        return localStorage.getItem(key + "-remember") !== "false";
+      } catch {
+        return true;
+      }
+    }),
+    [done, setDone] = useState(false),
+    [preferenceError, setPreferenceError] = useState("");
+  useEffect(() => {
     try {
       if (remember) localStorage.setItem(key, provider);
       else localStorage.removeItem(key);
-    } catch {}
+      localStorage.setItem(key + "-remember", String(remember));
+      setPreferenceError("");
+    } catch {
+      setPreferenceError(
+        "Je keuze kan op dit apparaat niet worden opgeslagen.",
+      );
+    }
+  }, [key, provider, remember]);
+  function submit(e: FormEvent) {
+    e.preventDefault();
     if (provider === "google")
       window.open(googleCalendarUrl(plan), "_blank", "noopener,noreferrer");
     else downloadCalendar([plan]);
@@ -450,6 +465,7 @@ function ExportDialog({
           />
           Onthoud mijn keuze op dit apparaat
         </label>
+        {preferenceError && <p role="status">{preferenceError}</p>}
         <p className="help">
           Bevestig het toevoegen in je agenda-app. Wijzigingen en afmeldingen
           worden daar nog niet automatisch bijgewerkt.
@@ -671,7 +687,7 @@ export default function App() {
     const params = new URLSearchParams(location.hash.slice(1));
     if (params.has("error")) {
       notify(
-        "De inloglink is verlopen of al gebruikt. Vraag een nieuwe mail aan.",
+        "Deze oude inloglink werkt niet meer. Vraag hieronder een nieuwe inlogcode aan.",
         true,
       );
       history.replaceState(null, "", location.pathname + location.search);
@@ -757,9 +773,11 @@ export default function App() {
       });
       if (error) throw error;
       setSent(true);
+      setCodeOpen(true);
+      setToken("");
       setCooldown(60);
       notify(
-        "Controleer je e-mail. Nieuw account? Vul de bevestigingscode in. Bestaand account? Open de nieuwste inloglink.",
+        "Je inlogcode is verstuurd. Bekijk je mail en ga terug naar deze app om de code in te vullen.",
       );
     } catch (e) {
       notify(message(e), true);
@@ -778,7 +796,7 @@ export default function App() {
       });
       if (error) throw error;
       setToken("");
-      notify("Je e-mailadres is bevestigd.");
+      notify("Je bent ingelogd.");
     } catch {
       notify(
         "De code klopt niet of is verlopen. Gebruik de nieuwste mail.",
@@ -1095,7 +1113,9 @@ export default function App() {
             <div className="auth-card">
               <span className="eyebrow">WELKOM THUIS</span>
               <h2>Open jullie agenda</h2>
-              <p>Log veilig in met je eigen e-mailadres.</p>
+              <p>
+                Ontvang een code op je eigen e-mailadres en vul die hier in.
+              </p>
               <form onSubmit={login}>
                 <label>
                   E-mailadres
@@ -1115,37 +1135,43 @@ export default function App() {
                   {cooldown > 0
                     ? `Opnieuw aanvragen over ${cooldown}s`
                     : sent
-                      ? "Stuur een nieuwe e-mail"
-                      : "Stuur mij een e-mail"}
+                      ? "Stuur een nieuwe code"
+                      : "Stuur mij een inlogcode"}
                 </button>
               </form>
               <p className="help">
-                Nieuw? Je krijgt een bevestigingscode. Heb je al een account?
-                Gebruik de inloglink uit de nieuwste mail.
+                Gebruik je de app op je iPhone-startscherm? Vraag de code hier
+                aan, bekijk je mail en keer terug naar deze app. Je blijft hier
+                ingelogd.
               </p>
-              <button
-                className="text-link"
-                onClick={() => setCodeOpen(!codeOpen)}
-              >
-                Ik heb een bevestigingscode
-              </button>
+              {!codeOpen && (
+                <button
+                  className="text-link"
+                  onClick={() => setCodeOpen(!codeOpen)}
+                >
+                  Ik heb al een inlogcode
+                </button>
+              )}
               {codeOpen && (
                 <form onSubmit={verify}>
                   <label>
                     Code uit je e-mail
                     <input
                       required
+                      autoFocus
                       inputMode="numeric"
                       autoComplete="one-time-code"
                       pattern="[0-9]{6,10}"
                       minLength={6}
                       maxLength={10}
                       value={token}
-                      onChange={(e) => setToken(e.target.value)}
+                      onChange={(e) =>
+                        setToken(e.target.value.replace(/\s/g, ""))
+                      }
                     />
                   </label>
                   <button className="secondary full" disabled={busy || !email}>
-                    Bevestig mijn e-mailadres
+                    Inloggen met code
                   </button>
                 </form>
               )}
