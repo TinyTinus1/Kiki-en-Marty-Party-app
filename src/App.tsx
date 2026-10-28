@@ -39,6 +39,7 @@ import {
   toInstant,
   shiftDate,
   activityTimes,
+  upcomingRange,
 } from "./calendar";
 import {
   downloadCalendar,
@@ -48,6 +49,8 @@ import {
   type ImportRow,
 } from "./ical";
 import { demoData } from "./demo";
+import { Ideas } from "./Ideas";
+import { exampleIdeas, type Idea, type IdeaDraft } from "./dateIdeas";
 import { registerSW } from "virtual:pwa-register";
 import type {
   AccessRequest,
@@ -151,7 +154,11 @@ function EventEditor({
   onClose,
   onSave,
   onDelete,
+  draft,
+  favoriteLocations,
 }: {
+  draft?: IdeaDraft;
+  favoriteLocations: Idea[];
   plan: Plan | null;
   day: string;
   onClose: () => void;
@@ -161,7 +168,9 @@ function EventEditor({
   const [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [deleting, setDeleting] = useState(false);
-  const [locationText, setLocationText] = useState(plan?.location || "");
+  const [locationText, setLocationText] = useState(
+    plan?.location || draft?.location || "",
+  );
   const [allDay, setAllDay] = useState(plan?.all_day || false);
   const [starts, setStarts] = useState(
     plan
@@ -230,7 +239,7 @@ function EventEditor({
             maxLength={100}
             autoFocus
             placeholder="Iets om naar uit te kijken…"
-            defaultValue={plan?.title}
+            defaultValue={plan?.title || draft?.title}
           />
         </label>
         <label className="check-label">
@@ -298,6 +307,34 @@ function EventEditor({
           Tijden volgen Nederland. Bewerken en verwijderen gelden voor de hele
           reeks. Een gewijzigde datum of herhaling wist de aanwezigheidskeuzes.
         </p>
+        {favoriteLocations.length > 0 && (
+          <label>
+            Kies een favoriete locatie
+            <select
+              value={
+                favoriteLocations.find(
+                  (i) => (i.location || i.title) === locationText,
+                )?.id || ""
+              }
+              onChange={(e) => {
+                const place = favoriteLocations.find(
+                  (i) => i.id === e.target.value,
+                );
+                if (place) setLocationText(place.location || place.title);
+              }}
+            >
+              <option value="">Kies een plek…</option>
+              {favoriteLocations.map((i) => (
+                <option key={i.id} value={i.id}>
+                  {i.title}
+                  {i.location && i.location !== i.title
+                    ? " · " + i.location
+                    : ""}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         <label>
           Waar?
           <input
@@ -327,7 +364,7 @@ function EventEditor({
             name="description"
             maxLength={2000}
             rows={3}
-            defaultValue={plan?.description}
+            defaultValue={plan?.description || draft?.description}
             placeholder="Wat moeten we weten?"
           />
         </label>
@@ -609,6 +646,14 @@ export default function App() {
       () => new Date(new Date().getFullYear(), new Date().getMonth(), 1),
     ),
     [selected, setSelected] = useState<string | null>(null);
+  const [tab, setTab] = useState<"agenda" | "alphabet" | "favorites">("agenda");
+  const [draft, setDraft] = useState<IdeaDraft | undefined>();
+  const [ideas, setIdeas] = useState<Idea[]>(() =>
+    isDemo ? exampleIdeas.map((i) => ({ ...i })) : [],
+  );
+  const [ideasLoading, setIdeasLoading] = useState(false);
+  const [ideasError, setIdeasError] = useState("");
+  const [clockNow, setClockNow] = useState(() => new Date());
   const [notice, setNotice] = useState(""),
     [noticeError, setNoticeError] = useState(false),
     [busy, setBusy] = useState(false),
@@ -648,6 +693,99 @@ export default function App() {
     setNotice(text);
     setNoticeError(error);
   }, []);
+  useEffect(() => {
+    const timer = setInterval(() => setClockNow(new Date()), 60000);
+    return () => clearInterval(timer);
+  }, []);
+  const ideaGeneration = useRef(0);
+  const ideaRead = useRef(0);
+  const loadIdeas = useCallback(async () => {
+    if (isDemo || !me) return;
+    const current = ++ideaRead.current;
+    const memberGeneration = ideaGeneration.current;
+    setIdeasLoading(true);
+    setIdeasError("");
+    try {
+      const { data, error } = await supabase
+        .from("date_ideas")
+        .select("*")
+        .order("created_at");
+      if (error) throw error;
+      if (
+        current === ideaRead.current &&
+        memberGeneration === ideaGeneration.current
+      )
+        setIdeas(data as Idea[]);
+    } catch {
+      if (
+        current === ideaRead.current &&
+        memberGeneration === ideaGeneration.current
+      )
+        setIdeasError("Jullie ideeën konden niet worden geladen.");
+    } finally {
+      if (
+        current === ideaRead.current &&
+        memberGeneration === ideaGeneration.current
+      )
+        setIdeasLoading(false);
+    }
+  }, [me?.user_id]);
+  useEffect(() => {
+    if (isDemo) return;
+    ideaGeneration.current++;
+    setIdeas([]);
+    setIdeasError("");
+    setTab("agenda");
+    setDraft(undefined);
+    if (me) void loadIdeas();
+    return () => {
+      ideaGeneration.current++;
+    };
+  }, [me?.user_id, loadIdeas]);
+  useEffect(() => {
+    if (isDemo || !me) return;
+    const refresh = () => {
+      if (!document.hidden) void loadIdeas();
+    };
+    const timer = setInterval(refresh, 30000);
+    window.addEventListener("focus", refresh);
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener("focus", refresh);
+    };
+  }, [me?.user_id, loadIdeas]);
+  async function saveIdea(idea: Idea) {
+    if (!me) throw new Error("Log opnieuw in.");
+    const memberId = me.user_id;
+    const current = ideaGeneration.current;
+    let saved = idea;
+    if (!isDemo) {
+      const { data, error } = await supabase
+        .from("date_ideas")
+        .upsert(idea)
+        .select("*")
+        .single();
+      if (error) throw error;
+      saved = data as Idea;
+    }
+    if (!isDemo && (current !== ideaGeneration.current || memberId !== userId))
+      return;
+    // A read started before this save must not replace the saved item with stale data.
+    ideaRead.current++;
+    setIdeasLoading(false);
+    setIdeas((rows) =>
+      rows.some((i) => i.id === saved.id)
+        ? rows.map((i) => (i.id === saved.id ? saved : i))
+        : [...rows, saved],
+    );
+  }
+  function planIdea(idea: IdeaDraft) {
+    const now = new Date();
+    setMonth(new Date(now.getFullYear(), now.getMonth(), 1));
+    setSelected(null);
+    setDraft(idea);
+    setEditor(null);
+  }
   useEffect(() => {
     updateServiceWorker.current = registerSW({
       onNeedRefresh() {
@@ -742,13 +880,16 @@ export default function App() {
       days[41].getDate() + 1,
     );
   const occurrences = expand(snapshot.plans, snapshot.attendance, start, end);
-  const visible = occurrences.filter((e) =>
-    selected
-      ? overlapsDay(e, selected)
-      : Date.parse(e.occurrence_start) <
-          +new Date(month.getFullYear(), month.getMonth() + 1, 1) &&
-        Date.parse(e.occurrence_end) > +month,
+  const upcoming = upcomingRange(clockNow);
+  const upcomingPlans = expand(
+    snapshot.plans,
+    snapshot.attendance,
+    upcoming.start,
+    upcoming.end,
   );
+  const visible = selected
+    ? occurrences.filter((e) => overlapsDay(e, selected))
+    : upcomingPlans;
   const pending = snapshot.requests.filter((r) => r.status === "pending");
   const both = (e: Occurrence) =>
     snapshot.members.length === 2 &&
@@ -868,7 +1009,9 @@ export default function App() {
     }
     const d = new Date(payload.starts_at!);
     setMonth(new Date(d.getFullYear(), d.getMonth(), 1));
-    setSelected(null);
+    setTab("agenda");
+    setSelected(dateKey(d));
+    setDraft(undefined);
     notify("Activiteit opgeslagen.");
   }
   async function deletePlan(p: Plan) {
@@ -1261,333 +1404,423 @@ export default function App() {
               </div>
               <button
                 className="primary add-plan"
-                onClick={() => setEditor(null)}
+                onClick={() => {
+                  setDraft(undefined);
+                  setEditor(null);
+                }}
               >
                 <Plus size={18} />
                 Activiteit toevoegen
               </button>
             </section>
-            {pending.length > 0 && (
-              <section className="approval-panel">
-                <h2>
-                  <Users size={18} /> Aanmeldingsaanvragen
-                </h2>
-                {pending.map((r) => (
-                  <div className="approval-row" key={r.user_id}>
-                    <div>
-                      <strong>{r.display_name}</strong>
-                      <small>{r.email}</small>
-                    </div>
-                    <button
-                      className="secondary"
-                      disabled={busy}
-                      onClick={() => void review(r, true)}
-                    >
-                      Goedkeuren
-                    </button>
-                    <button
-                      className="quiet"
-                      disabled={busy}
-                      onClick={() => void review(r, false)}
-                    >
-                      Afwijzen
-                    </button>
-                  </div>
+            <nav className="page-tabs" aria-label="Jullie agenda en ideeën">
+              {(
+                [
+                  ["agenda", "Agenda"],
+                  ["alphabet", "A–Z dates"],
+                  ["favorites", "Favorieten"],
+                ] as const
+              ).map(([value, label]) => (
+                <button
+                  key={value}
+                  aria-current={tab === value ? "page" : undefined}
+                  onClick={() => setTab(value)}
+                >
+                  {label}
+                </button>
+              ))}
+            </nav>
+            <datalist id="saved-places">
+              {ideas
+                .filter((i) => i.kind === "location" && !i.archived)
+                .map((i) => (
+                  <option key={i.id} value={i.location || i.title}>
+                    {i.title}
+                  </option>
                 ))}
-              </section>
+            </datalist>
+            {tab !== "agenda" && (
+              <Ideas
+                key={tab + me.user_id}
+                mode={tab}
+                ideas={ideas}
+                loading={ideasLoading}
+                error={ideasError}
+                onRetry={() => void loadIdeas()}
+                onSave={saveIdea}
+                onPlan={planIdea}
+              />
             )}
-            <div className="agenda-layout">
-              <section className="calendar-panel" aria-label="Maandkalender">
-                <div className="calendar-toolbar">
-                  <h2>
-                    {formatDate(toInstant(dateKey(month) + "T12:00"), {
-                      month: "long",
-                      year: "numeric",
-                    })}
-                  </h2>
-                  <div>
-                    <button
-                      className="today-button"
-                      onClick={() => {
-                        const n = new Date();
-                        setMonth(new Date(n.getFullYear(), n.getMonth(), 1));
-                        setSelected(dateKey(n));
-                      }}
-                    >
-                      Vandaag
-                    </button>
-                    <IconButton
-                      label="Vorige maand"
-                      onClick={() => changeMonth(-1)}
-                    >
-                      <ChevronLeft size={20} />
-                    </IconButton>
-                    <IconButton
-                      label="Volgende maand"
-                      onClick={() => changeMonth(1)}
-                    >
-                      <ChevronRight size={20} />
-                    </IconButton>
-                  </div>
-                </div>
-                <div className="weekdays" aria-hidden="true">
-                  {["MA", "DI", "WO", "DO", "VR", "ZA", "ZO"].map((d) => (
-                    <span key={d}>{d}</span>
-                  ))}
-                </div>
-                <div className="calendar-grid">
-                  {days.map((day) => {
-                    const key = dateKey(day),
-                      plans = occurrences.filter((e) => overlapsDay(e, key));
-                    return (
-                      <button
-                        key={key}
-                        className={[
-                          "calendar-day",
-                          day.getMonth() !== month.getMonth() ? "outside" : "",
-                          key === dateKey(new Date()) ? "today" : "",
-                          key === selected ? "selected" : "",
-                        ].join(" ")}
-                        aria-label={`${day.toLocaleDateString("nl-NL", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}, ${plans.length} activiteiten`}
-                        aria-pressed={selected === key}
-                        onClick={() => {
-                          setSelected(selected === key ? null : key);
-                          if (day.getMonth() !== month.getMonth())
-                            setMonth(
-                              new Date(day.getFullYear(), day.getMonth(), 1),
-                            );
-                        }}
-                      >
-                        <span className="day-number">{day.getDate()}</span>
-                        <span className="day-plans">
-                          {plans.slice(0, 2).map((p) => (
-                            <span
-                              key={p.id + p.occurrence_start}
-                              className={"mini-plan " + colorOf(p)}
-                            >
-                              {p.title}
-                            </span>
-                          ))}
-                          {plans.length > 2 && (
-                            <span className="more-plans">
-                              +{plans.length - 2} meer
-                            </span>
-                          )}
-                        </span>
-                        <span className="day-dots">
-                          {plans.slice(0, 4).map((p) => (
-                            <i
-                              key={p.id + p.occurrence_start}
-                              className={"dot " + colorOf(p)}
-                            />
-                          ))}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-                <div className="calendar-bottom">
-                  <div className="legend">
-                    <span>
-                      <i className="dot kiki" />
-                      Kiki
-                    </span>
-                    <span>
-                      <i className="dot marty" />
-                      Marty
-                    </span>
-                    <span>
-                      <i className="dot together" />
-                      Samen
-                    </span>
-                  </div>
-                  {selected && (
-                    <button
-                      className="text-link"
-                      onClick={() => setSelected(null)}
-                    >
-                      Hele maand
-                    </button>
-                  )}
-                </div>
-              </section>
-              <aside className="planning-panel">
-                <div className="planning-title">
-                  <div>
-                    <span className="eyebrow">
-                      {selected ? "GESELECTEERDE DAG" : "DEZE MAAND"}
-                    </span>
+            {tab === "agenda" && (
+              <>
+                {pending.length > 0 && (
+                  <section className="approval-panel">
                     <h2>
-                      {selected
-                        ? formatDate(toInstant(selected + "T12:00"), {
-                            day: "numeric",
-                            month: "long",
-                          })
-                        : "Op de planning"}
+                      <Users size={18} /> Aanmeldingsaanvragen
                     </h2>
-                  </div>
-                  <span className="count">{visible.length}</span>
-                </div>
-                <div className="plan-list">
-                  {!visible.length ? (
-                    <div className="empty">
-                      <CalendarDays size={32} />
-                      <h3>Ruimte voor iets leuks</h3>
-                      <p>
-                        Er staan nog geen plannen voor{" "}
-                        {selected ? "deze dag" : "deze maand"}.
-                      </p>
-                      <button
-                        className="text-link"
-                        onClick={() => setEditor(null)}
-                      >
-                        Maak een plan <Plus size={14} />
-                      </button>
-                    </div>
-                  ) : (
-                    visible.map((event) => {
-                      const author = snapshot.members.find(
-                          (m) => m.user_id === event.owner_id,
-                        ),
-                        present = event.attendees.includes(me.user_id);
-                      return (
-                        <article
-                          key={event.id + event.occurrence_start}
-                          className={"plan-card " + colorOf(event)}
+                    {pending.map((r) => (
+                      <div className="approval-row" key={r.user_id}>
+                        <div>
+                          <strong>{r.display_name}</strong>
+                          <small>{r.email}</small>
+                        </div>
+                        <button
+                          className="secondary"
+                          disabled={busy}
+                          onClick={() => void review(r, true)}
                         >
-                          <div className="plan-top">
-                            <div className="plan-date">
-                              <strong>
-                                {formatDate(event.occurrence_start, {
-                                  day: "2-digit",
-                                })}
-                              </strong>
-                              <span>
-                                {formatDate(event.occurrence_start, {
-                                  month: "short",
-                                })}
-                              </span>
-                            </div>
-                            <div className="plan-main">
-                              <span className="plan-owner">
-                                {both(event)
-                                  ? "Kiki & Marty"
-                                  : author?.display_name || "Samen"}{" "}
-                                {event.recurrence !== "none" && (
-                                  <Repeat2
-                                    size={12}
-                                    aria-label={repeatLabel[event.recurrence]}
-                                  />
-                                )}
-                              </span>
-                              <h3>{event.title}</h3>
-                              <p className="plan-time">
-                                {event.all_day
-                                  ? "Hele dag"
-                                  : formatDate(event.occurrence_start, {
-                                      hour: "2-digit",
-                                      minute: "2-digit",
-                                    }) +
-                                    " – " +
-                                    formatDate(event.occurrence_end, {
-                                      ...(dateKey(
-                                        new Date(event.occurrence_start),
-                                      ) !==
-                                      dateKey(new Date(event.occurrence_end))
-                                        ? { day: "numeric", month: "short" }
-                                        : {}),
-                                      hour: "2-digit",
-                                      minute: "2-digit",
-                                    })}
-                              </p>
-                            </div>
-                            <button
-                              className="edit-button"
-                              aria-label={`Bewerk ${event.title}`}
-                              onClick={() =>
-                                setEditor(
-                                  snapshot.plans.find(
-                                    (p) => p.id === event.id,
-                                  )!,
-                                )
-                              }
-                            >
-                              Bewerk
-                            </button>
-                          </div>
-                          {event.location && (
-                            <a
-                              className="plan-location"
-                              href={
-                                "https://www.google.com/maps/search/?api=1&query=" +
-                                encodeURIComponent(event.location)
-                              }
-                              target="_blank"
-                              rel="noreferrer"
-                            >
-                              <MapPin size={13} />
-                              {event.location}
-                            </a>
-                          )}
-                          {event.description && (
-                            <p className="plan-description">
-                              {event.description}
-                            </p>
-                          )}
-                          <div className="attendance-people">
-                            {snapshot.members.map((m) => (
-                              <span
-                                key={m.user_id}
-                                className={
-                                  (event.attendees.includes(m.user_id)
-                                    ? "is-present "
-                                    : "") + m.persona
-                                }
-                              >
-                                <span className="person-dot">
-                                  {event.attendees.includes(m.user_id) ? (
-                                    <Check size={10} />
-                                  ) : null}
-                                </span>
-                                {m.display_name}
-                              </span>
-                            ))}
-                          </div>
-                          <div className="plan-buttons">
-                            <button
-                              className={present ? "attend active" : "attend"}
-                              onClick={() => {
-                                setAttending(event);
-                                setAttendanceSeries(false);
-                                setAttendanceValue(!present);
-                              }}
-                            >
-                              <Check size={14} />
-                              {present
-                                ? "Aanwezig · wijzigen"
-                                : "Ik ben aanwezig"}
-                            </button>
-                            <IconButton
-                              label={`Voeg ${event.title} toe aan persoonlijke agenda`}
-                              onClick={() =>
-                                setExporting(
-                                  exportPlan(
-                                    event,
-                                    event.recurrence !== "none",
+                          Goedkeuren
+                        </button>
+                        <button
+                          className="quiet"
+                          disabled={busy}
+                          onClick={() => void review(r, false)}
+                        >
+                          Afwijzen
+                        </button>
+                      </div>
+                    ))}
+                  </section>
+                )}
+                <div className="agenda-layout">
+                  <section
+                    className="calendar-panel"
+                    aria-label="Maandkalender"
+                  >
+                    <div className="calendar-toolbar">
+                      <h2>
+                        {formatDate(toInstant(dateKey(month) + "T12:00"), {
+                          month: "long",
+                          year: "numeric",
+                        })}
+                      </h2>
+                      <div>
+                        <button
+                          className="today-button"
+                          onClick={() => {
+                            const n = new Date();
+                            setMonth(
+                              new Date(n.getFullYear(), n.getMonth(), 1),
+                            );
+                            setSelected(dateKey(n));
+                          }}
+                        >
+                          Vandaag
+                        </button>
+                        <IconButton
+                          label="Vorige maand"
+                          onClick={() => changeMonth(-1)}
+                        >
+                          <ChevronLeft size={20} />
+                        </IconButton>
+                        <IconButton
+                          label="Volgende maand"
+                          onClick={() => changeMonth(1)}
+                        >
+                          <ChevronRight size={20} />
+                        </IconButton>
+                      </div>
+                    </div>
+                    <div className="weekdays" aria-hidden="true">
+                      {["MA", "DI", "WO", "DO", "VR", "ZA", "ZO"].map((d) => (
+                        <span key={d}>{d}</span>
+                      ))}
+                    </div>
+                    <div className="calendar-grid">
+                      {days.map((day) => {
+                        const key = dateKey(day),
+                          plans = occurrences.filter((e) =>
+                            overlapsDay(e, key),
+                          );
+                        return (
+                          <button
+                            key={key}
+                            className={[
+                              "calendar-day",
+                              day.getMonth() !== month.getMonth()
+                                ? "outside"
+                                : "",
+                              key === dateKey(new Date()) ? "today" : "",
+                              key === selected ? "selected" : "",
+                            ].join(" ")}
+                            aria-label={`${day.toLocaleDateString("nl-NL", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}, ${plans.length} activiteiten`}
+                            aria-pressed={selected === key}
+                            onClick={() => {
+                              setSelected(selected === key ? null : key);
+                              if (day.getMonth() !== month.getMonth())
+                                setMonth(
+                                  new Date(
+                                    day.getFullYear(),
+                                    day.getMonth(),
+                                    1,
                                   ),
-                                )
-                              }
+                                );
+                            }}
+                          >
+                            <span className="day-number">{day.getDate()}</span>
+                            <span className="day-plans">
+                              {plans.slice(0, 2).map((p) => (
+                                <span
+                                  key={p.id + p.occurrence_start}
+                                  className={"mini-plan " + colorOf(p)}
+                                >
+                                  {p.title}
+                                </span>
+                              ))}
+                              {plans.length > 2 && (
+                                <span className="more-plans">
+                                  +{plans.length - 2} meer
+                                </span>
+                              )}
+                            </span>
+                            <span className="day-dots">
+                              {plans.slice(0, 4).map((p) => (
+                                <i
+                                  key={p.id + p.occurrence_start}
+                                  className={"dot " + colorOf(p)}
+                                />
+                              ))}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <div className="calendar-bottom">
+                      <div className="legend">
+                        <span>
+                          <i className="dot kiki" />
+                          Kiki
+                        </span>
+                        <span>
+                          <i className="dot marty" />
+                          Marty
+                        </span>
+                        <span>
+                          <i className="dot together" />
+                          Samen
+                        </span>
+                      </div>
+                      {selected && (
+                        <button
+                          className="text-link"
+                          onClick={() => setSelected(null)}
+                        >
+                          Vandaag en binnenkort
+                        </button>
+                      )}
+                    </div>
+                  </section>
+                  <aside className="planning-panel">
+                    <div className="planning-title">
+                      <div>
+                        <span className="eyebrow">
+                          {selected
+                            ? "GESELECTEERDE DAG"
+                            : "VANDAAG EN BINNENKORT"}
+                        </span>
+                        <h2>
+                          {selected
+                            ? formatDate(toInstant(selected + "T12:00"), {
+                                day: "numeric",
+                                month: "long",
+                              })
+                            : "De komende maand"}
+                        </h2>
+                      </div>
+                      <span className="count">{visible.length}</span>
+                    </div>
+                    {!selected && (
+                      <p className="planning-range">
+                        {formatDate(upcoming.start.toISOString(), {
+                          day: "numeric",
+                          month: "long",
+                        })}{" "}
+                        t/m{" "}
+                        {formatDate(toInstant(upcoming.last + "T12:00"), {
+                          day: "numeric",
+                          month: "long",
+                        })}
+                      </p>
+                    )}
+                    {selected && (
+                      <button
+                        className="text-link planning-reset"
+                        onClick={() => setSelected(null)}
+                      >
+                        Terug naar de komende maand
+                      </button>
+                    )}
+                    <div className="plan-list">
+                      {!visible.length ? (
+                        <div className="empty">
+                          <CalendarDays size={32} />
+                          <h3>Ruimte voor iets leuks</h3>
+                          <p>
+                            Er staan nog geen plannen voor{" "}
+                            {selected ? "deze dag" : "de komende maand"}.
+                          </p>
+                          <button
+                            className="text-link"
+                            onClick={() => {
+                              setDraft(undefined);
+                              setEditor(null);
+                            }}
+                          >
+                            Maak een plan <Plus size={14} />
+                          </button>
+                        </div>
+                      ) : (
+                        visible.map((event) => {
+                          const author = snapshot.members.find(
+                              (m) => m.user_id === event.owner_id,
+                            ),
+                            present = event.attendees.includes(me.user_id);
+                          return (
+                            <article
+                              key={event.id + event.occurrence_start}
+                              className={"plan-card " + colorOf(event)}
                             >
-                              <ArrowDownToLine size={16} />
-                            </IconButton>
-                          </div>
-                        </article>
-                      );
-                    })
-                  )}
+                              <div className="plan-top">
+                                <div className="plan-date">
+                                  <strong>
+                                    {formatDate(event.occurrence_start, {
+                                      day: "2-digit",
+                                    })}
+                                  </strong>
+                                  <span>
+                                    {formatDate(event.occurrence_start, {
+                                      month: "short",
+                                    })}
+                                  </span>
+                                </div>
+                                <div className="plan-main">
+                                  <span className="plan-owner">
+                                    {both(event)
+                                      ? "Kiki & Marty"
+                                      : author?.display_name || "Samen"}{" "}
+                                    {event.recurrence !== "none" && (
+                                      <Repeat2
+                                        size={12}
+                                        aria-label={
+                                          repeatLabel[event.recurrence]
+                                        }
+                                      />
+                                    )}
+                                  </span>
+                                  <h3>{event.title}</h3>
+                                  <p className="plan-time">
+                                    {event.all_day
+                                      ? "Hele dag"
+                                      : formatDate(event.occurrence_start, {
+                                          hour: "2-digit",
+                                          minute: "2-digit",
+                                        }) +
+                                        " – " +
+                                        formatDate(event.occurrence_end, {
+                                          ...(dateKey(
+                                            new Date(event.occurrence_start),
+                                          ) !==
+                                          dateKey(
+                                            new Date(event.occurrence_end),
+                                          )
+                                            ? { day: "numeric", month: "short" }
+                                            : {}),
+                                          hour: "2-digit",
+                                          minute: "2-digit",
+                                        })}
+                                  </p>
+                                </div>
+                                <button
+                                  className="edit-button"
+                                  aria-label={`Bewerk ${event.title}`}
+                                  onClick={() =>
+                                    setEditor(
+                                      snapshot.plans.find(
+                                        (p) => p.id === event.id,
+                                      )!,
+                                    )
+                                  }
+                                >
+                                  Bewerk
+                                </button>
+                              </div>
+                              {event.location && (
+                                <a
+                                  className="plan-location"
+                                  href={
+                                    "https://www.google.com/maps/search/?api=1&query=" +
+                                    encodeURIComponent(event.location)
+                                  }
+                                  target="_blank"
+                                  rel="noreferrer"
+                                >
+                                  <MapPin size={13} />
+                                  {event.location}
+                                </a>
+                              )}
+                              {event.description && (
+                                <p className="plan-description">
+                                  {event.description}
+                                </p>
+                              )}
+                              <div className="attendance-people">
+                                {snapshot.members.map((m) => (
+                                  <span
+                                    key={m.user_id}
+                                    className={
+                                      (event.attendees.includes(m.user_id)
+                                        ? "is-present "
+                                        : "") + m.persona
+                                    }
+                                  >
+                                    <span className="person-dot">
+                                      {event.attendees.includes(m.user_id) ? (
+                                        <Check size={10} />
+                                      ) : null}
+                                    </span>
+                                    {m.display_name}
+                                  </span>
+                                ))}
+                              </div>
+                              <div className="plan-buttons">
+                                <button
+                                  className={
+                                    present ? "attend active" : "attend"
+                                  }
+                                  onClick={() => {
+                                    setAttending(event);
+                                    setAttendanceSeries(false);
+                                    setAttendanceValue(!present);
+                                  }}
+                                >
+                                  <Check size={14} />
+                                  {present
+                                    ? "Aanwezig · wijzigen"
+                                    : "Ik ben aanwezig"}
+                                </button>
+                                <IconButton
+                                  label={`Voeg ${event.title} toe aan persoonlijke agenda`}
+                                  onClick={() =>
+                                    setExporting(
+                                      exportPlan(
+                                        event,
+                                        event.recurrence !== "none",
+                                      ),
+                                    )
+                                  }
+                                >
+                                  <ArrowDownToLine size={16} />
+                                </IconButton>
+                              </div>
+                            </article>
+                          );
+                        })
+                      )}
+                    </div>
+                  </aside>
                 </div>
-              </aside>
-            </div>
+              </>
+            )}
             <footer className="agenda-footer">
               <span>
                 <Heart size={13} /> Gemaakt voor jullie twee
@@ -1638,6 +1871,10 @@ export default function App() {
         <EventEditor
           key={editor?.id || "new"}
           plan={editor}
+          draft={draft}
+          favoriteLocations={ideas.filter(
+            (i) => i.kind === "location" && !i.archived,
+          )}
           day={
             selected ||
             dateKey(
@@ -1647,7 +1884,10 @@ export default function App() {
                 : month,
             )
           }
-          onClose={() => setEditor(undefined)}
+          onClose={() => {
+            setEditor(undefined);
+            setDraft(undefined);
+          }}
           onSave={savePlan}
           onDelete={deletePlan}
         />

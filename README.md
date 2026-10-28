@@ -48,6 +48,19 @@ SMTP-wachtwoorden horen uitsluitend in Supabase serversecrets.
 - Na aanmelden wordt een exportkeuze aangeboden, voor één datum of de hele reeks.
 - Import van maximaal 200 afspraken/1 MB met voorbeeld en deduplicatie.
 - Google Maps zoeklink, donker/licht thema en installeerbare PWA.
+- Planning standaard van vandaag tot en met dezelfde datum volgende maand,
+  inclusief afspraken die over een dag- of maandgrens doorlopen. Een dag in de
+  maandkalender selecteren toont die dag; ‘Vandaag en binnenkort’ herstelt het overzicht.
+- Grotere tijden, locaties en acties, met aanraakvlakken van minimaal 44 pixels
+  voor de belangrijkste knoppen. Het downloadicoon blijft behouden.
+- A–Z dates: meerdere eigen ideeën per letter, inplannen en ‘Samen gedaan’
+  afvinken. De voortgang telt afgeronde letters eenmaal.
+- Favorieten met herbruikbare dates en favoriete locaties. Bij inplannen worden
+  titel, locatie en beschrijving ingevuld; opgeslagen locaties zijn ook in een
+  nieuwe activiteit te kiezen. De datum en tijd bepaal je zelf.
+- Ideeën en favorieten zijn gedeeld tussen beide goedgekeurde leden. Wegleggen
+  is terug te draaien via ‘Weggelegde ideeën’. In de demo blijven wijzigingen
+  alleen tot het herladen beschikbaar.
 - Serverwachtrij en worker voor nieuwe activiteiten, aanvragen en goedkeuringen.
   Meerdere klaarstaande activiteiten voor dezelfde ontvanger worden gebundeld.
 
@@ -116,6 +129,18 @@ na oplopende wachttijd opnieuw geprobeerd. Dagbudget: maximaal 100 mailbatches;
 een batch bevat maximaal 200 activiteiten voor dezelfde ontvanger.
 Mails gaan alleen over nieuwe activiteiten, aanvragen en goedkeuringen; wijzigingen,
 afgelastingen en herinneringen sturen in deze versie geen aparte mail.
+
+### Date-ideeën en favorieten
+
+`date-ideas.sql` is op 28 oktober 2026 als migratie
+`shared_date_ideas_and_favorites` toegepast op ditzelfde project. Niet opnieuw
+uitvoeren. De tabel `date_ideas` heeft RLS volgens de bestaande bevestigde
+ledencontrole. Alleen lezen, toevoegen en wijzigen is toegestaan; wegleggen
+gebruikt een archiefvlag. Er worden geen voorbeeldideeën in de echte database gezet.
+
+`date-ideas-test.sql` controleert beide bestaande leden, een niet-lid, anonieme
+toegang, validatie en terugzetten. Alle testmutaties worden teruggedraaid binnen
+de transactie; de test vereist twee bestaande leden en verzendt geen mail.
 
 ### Hosting
 

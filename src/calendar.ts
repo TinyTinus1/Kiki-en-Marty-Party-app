@@ -17,6 +17,19 @@ export const toInstant = (local: string) =>
     .toString();
 export const shiftDate = (date: string, days: number) =>
   Temporal.PlainDate.from(date).add({ days }).toString();
+// Include today and the same calendar date next month (clamped at month end).
+export function upcomingRange(now: Date) {
+  const first = Temporal.Instant.fromEpochMilliseconds(+now)
+    .toZonedDateTimeISO(zone)
+    .toPlainDate();
+  const last = first.add({ months: 1 });
+  return {
+    first: first.toString(),
+    last: last.toString(),
+    start: new Date(toInstant(first.toString() + "T00:00")),
+    end: new Date(toInstant(last.add({ days: 1 }).toString() + "T00:00")),
+  };
+}
 // Date ranges shown to people include the last day. iCalendar ends are exclusive.
 export function activityTimes(start: string, end: string, allDay: boolean) {
   if (allDay && end < start)
