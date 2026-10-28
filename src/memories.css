@@ -1,0 +1,643 @@
+@import url("https://fonts.googleapis.com/css2?family=Caveat:wght@400;500;600;700&display=swap");
+
+.memory-section {
+  --ink: #47392f;
+  --paper: #f6efdf;
+  --book-purple: #795389;
+  --book-orange: #a4542e;
+  color: var(--ink);
+  background: #eee7da;
+  border-radius: 24px;
+  padding: 30px clamp(12px, 3vw, 34px) 26px;
+}
+.page-tabs.book-tabs {
+  margin-top: 30px;
+}
+.memory-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin: 0 0 36px;
+}
+.memory-heading .eyebrow {
+  color: #766957;
+  font-size: 10px;
+}
+.memory-heading h2 {
+  font-family: Caveat, cursive;
+  font-size: clamp(32px, 4vw, 48px);
+  font-weight: 600;
+  line-height: 1.2;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 12px 0;
+}
+.memory-heading h2 svg {
+  color: var(--book-orange);
+  flex-shrink: 0;
+}
+.memory-heading p {
+  font-size: 14px;
+  letter-spacing: 2px;
+}
+.memory-heading > .quiet {
+  color: var(--ink);
+  border: 1px solid #d0c3ac;
+  border-radius: 12px;
+  flex-shrink: 0;
+}
+.memory-cover {
+  min-height: 520px;
+  width: min(100%, 490px);
+  padding: 70px 35px 55px;
+  margin: 0 auto 30px;
+  background:
+    repeating-linear-gradient(91deg, #a7a08516 0 1px, transparent 1px 4px),
+    repeating-linear-gradient(1deg, #fff4dc55 0 1px, transparent 1px 3px),
+    #b4a487;
+  border: 1px solid #8d806a;
+  border-left: 15px solid #8f7f65;
+  border-radius: 8px 20px 20px 8px;
+  box-shadow:
+    10px 15px 25px #3b302c25,
+    inset -4px 0 0 #f1e7d080;
+  position: relative;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+.cover-stitch {
+  position: absolute;
+  inset: 14px;
+  border: 1px dashed #74664b80;
+  border-radius: 6px 14px 14px 6px;
+  pointer-events: none;
+}
+.memory-cover > svg {
+  color: #684b70;
+}
+.cover-names {
+  font-family: Caveat, cursive;
+  font-size: 34px;
+  color: #463b30;
+}
+.memory-cover h3 {
+  font-family: Caveat, cursive;
+  font-size: 58px;
+  font-weight: 500;
+  line-height: 1;
+  text-shadow: 0 1px #e1d2b9;
+}
+.memory-cover > p {
+  font-size: 14px;
+  line-height: 1.8;
+  max-width: 270px;
+}
+.cover-count {
+  font-size: 13px;
+  margin-top: 12px;
+}
+.cover-open {
+  min-height: 48px;
+  border-radius: 9px;
+  background: #71507d;
+  color: #fff9ee;
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+  font-size: 14px;
+}
+.scrapbook {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  border: 8px solid #ab9a7c;
+  border-radius: 8px 14px 14px 8px;
+  background: #f6efdf;
+  box-shadow:
+    0 16px 30px #392b2525,
+    0 2px 3px #392b2522;
+  animation: book-open 0.35s ease-out;
+  transform-origin: center;
+}
+.scrapbook-page {
+  min-width: 0;
+  padding: 36px clamp(16px, 2.8vw, 34px) 28px;
+  background:
+    radial-gradient(ellipse at 50% 20%, #fffaf177, transparent 65%),
+    repeating-linear-gradient(3deg, #b89e7520 0 0.5px, transparent 0.5px 4px),
+    #f6efdf;
+}
+.memory-left {
+  box-shadow:
+    inset -14px 0 22px -18px #49361d99,
+    inset 3px 0 #fff9e6;
+  border-right: 1px solid #bfb098;
+  padding-top: 42px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+.memory-right {
+  box-shadow: inset 14px 0 22px -18px #49361d88;
+}
+.polaroid {
+  background: #fffaf1;
+  padding: 15px 15px 22px;
+  box-shadow: 1px 4px 9px #48332130;
+  transform: rotate(-2deg);
+  position: relative;
+  margin: 0 4px 26px;
+}
+.polaroid::before {
+  content: "";
+  position: absolute;
+  top: -14px;
+  left: 35%;
+  width: 31%;
+  height: 32px;
+  background: repeating-linear-gradient(
+    80deg,
+    #cbb99655 0 1px,
+    #ddcaaa77 1px 3px
+  );
+  transform: rotate(3deg);
+  z-index: 1;
+  clip-path: polygon(2% 0, 98% 1%, 100% 92%, 95% 100%, 3% 96%, 0 5%);
+}
+.memory-photo {
+  aspect-ratio: 4/3;
+  overflow: hidden;
+  background: #e7dfcf;
+}
+.memory-photo img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+}
+.memory-photo-empty {
+  height: 100%;
+  min-height: 180px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  text-align: center;
+  padding: 20px;
+  color: #756651;
+  background: linear-gradient(160deg, #e4d9c7, #f2ebde);
+}
+.memory-photo-empty strong {
+  font-family: Caveat, cursive;
+  font-size: 25px;
+  font-weight: 500;
+}
+.memory-photo-empty span {
+  font-size: 13px;
+  line-height: 1.7;
+}
+.memory-file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  overflow: hidden;
+  padding: 0;
+  margin: 0;
+  min-height: 0;
+}
+.memory-photo-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  margin: 8px auto 0;
+  background: transparent;
+  color: #69523c;
+  font-size: 13px;
+}
+.polaroid-caption {
+  position: relative;
+  padding: 5px 6px 4px;
+}
+.polaroid-caption h3 {
+  font-family: Caveat, cursive;
+  font-size: clamp(28px, 3vw, 40px);
+  font-weight: 500;
+  line-height: 1.15;
+  margin-bottom: 16px;
+  overflow-wrap: anywhere;
+}
+.memory-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-right: 65px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.memory-meta > span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-wrap: anywhere;
+}
+.memory-meta svg {
+  flex-shrink: 0;
+}
+.memory-stickers {
+  position: absolute;
+  right: 4px;
+  bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #a95732;
+}
+.memory-letter {
+  width: 29px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  background: #92719c;
+  color: #fff9ee;
+  border-radius: 3px;
+  transform: rotate(-7deg);
+  font-size: 16px;
+}
+.memory-page-title {
+  font-family: Caveat, cursive;
+  font-size: clamp(25px, 2.4vw, 34px);
+  font-weight: 500;
+  line-height: 1.2;
+  margin: 0 0 25px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.memory-page-title svg {
+  flex-shrink: 0;
+  color: #a95732;
+}
+.memory-note {
+  padding: 20px;
+  margin-bottom: 23px;
+  background: #e9deeb;
+  box-shadow: 0 3px 4px #5c442420;
+  border-radius: 3px 7px 4px 2px;
+  border-bottom: 1px solid #d1c4ce;
+}
+.memory-note.marty {
+  background: #f0dfce;
+  border-color: #deccb7;
+  transform: rotate(0.4deg);
+}
+.memory-note h3 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: Caveat, cursive;
+  font-size: 29px;
+  font-weight: 500;
+  line-height: 1.2;
+  color: #674575;
+  margin-bottom: 17px;
+}
+.memory-note.marty h3 {
+  color: #8d472c;
+}
+.memory-note h3 svg {
+  color: inherit;
+}
+.memory-note textarea {
+  color: #47392f;
+  background: #fffaf3b3;
+  border-color: #cdbfae;
+  font-size: 15px;
+  line-height: 1.8;
+  min-height: 145px;
+  resize: vertical;
+}
+.memory-note textarea::placeholder {
+  color: #7b6b63;
+  opacity: 1;
+}
+.memory-note textarea:focus-visible,
+.memory-section button:focus-visible {
+  outline-color: #795389;
+}
+.moment-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+.memory-save {
+  background: #795389;
+  color: #fff9f1;
+  border-radius: 7px;
+  min-height: 46px;
+  padding: 12px 18px;
+  font-size: 14px;
+}
+.memory-text-button {
+  min-height: 44px;
+  background: transparent;
+  color: #6b4a76;
+  padding: 8px 4px;
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  line-height: 1.5;
+}
+.memory-edit-meta {
+  align-self: center;
+}
+.memory-story {
+  font-size: 15px;
+  line-height: 1.9;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.memory-locked {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-height: 150px;
+}
+.memory-locked svg {
+  color: #795389;
+}
+.memory-locked strong {
+  font-size: 14px;
+  line-height: 1.6;
+}
+.memory-locked p {
+  font-size: 13px;
+  line-height: 1.8;
+  color: #6c5d56;
+}
+.memory-draft-hint {
+  font-size: 12px;
+  line-height: 1.7;
+  color: #6c5d56;
+  margin-top: 10px;
+}
+.memory-own-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  line-height: 1.7;
+  color: #6b5173;
+  margin-top: 10px;
+}
+.memory-reveal-status {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 10px;
+  border-top: 1px solid #d7cab5;
+  padding-top: 16px;
+  font-size: 12px;
+  line-height: 1.8;
+}
+.memory-reveal-status svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.memory-reveal-status.revealed {
+  color: #5f456b;
+}
+.memory-error {
+  color: #9a3f2f;
+  padding: 10px;
+  background: #fff4e4;
+  border-radius: 7px;
+  font-size: 13px;
+  line-height: 1.7;
+  margin: 10px 0;
+}
+.book-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 24px;
+}
+.book-arrow {
+  display: grid;
+  place-items: center;
+  min-width: 46px;
+  min-height: 46px;
+  background: #fbf6eb;
+  border: 1px solid #bdac91;
+  border-radius: 50%;
+  color: #675341;
+}
+.book-arrow:disabled {
+  cursor: default;
+  opacity: 0.35;
+}
+.book-controls > div {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0 18px;
+  text-align: center;
+}
+.book-controls > div > span {
+  flex-basis: 100%;
+  font-size: 14px;
+  line-height: 1.7;
+}
+.book-contents {
+  margin-top: 20px;
+  padding: 22px;
+  background: #fbf6ea;
+  border: 1px solid #d6c7af;
+  border-radius: 12px;
+}
+.book-contents h3 {
+  font-family: Caveat, cursive;
+  font-size: 30px;
+  margin-bottom: 12px;
+}
+.book-contents button {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 52px;
+  padding: 12px 0;
+  background: transparent;
+  color: #514131;
+  width: 100%;
+  text-align: left;
+  border-top: 1px solid #e4d8c5;
+}
+.book-contents button[aria-current="page"] {
+  color: #795389;
+}
+.book-contents button strong {
+  flex: 1;
+  overflow-wrap: anywhere;
+  font-size: 14px;
+}
+.book-contents button span {
+  font-size: 12px;
+}
+.memory-heart {
+  color: var(--purple);
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+@keyframes book-open {
+  from {
+    opacity: 0.5;
+    transform: perspective(1400px) rotateY(-3deg);
+  }
+  to {
+    opacity: 1;
+    transform: perspective(1400px) rotateY(0);
+  }
+}
+@media (max-width: 1000px) {
+  .scrapbook-page {
+    padding: 30px 18px 22px;
+  }
+  .memory-note {
+    padding: 16px;
+  }
+  .memory-heading {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+}
+@media (max-width: 760px) {
+  .page-tabs.page-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3px;
+  }
+  .page-tabs button {
+    min-width: 0;
+  }
+  .memory-section {
+    padding: 22px 12px;
+    border-radius: 18px;
+  }
+  .memory-heading {
+    margin: 0 6px 27px;
+  }
+  .memory-heading h2 {
+    font-size: 34px;
+  }
+  .memory-heading h2 svg {
+    display: none;
+  }
+  .memory-heading p {
+    font-size: 12px;
+    letter-spacing: 1px;
+  }
+  .scrapbook {
+    grid-template-columns: 1fr;
+    border-width: 5px;
+  }
+  .scrapbook-page {
+    padding: 28px 16px 20px;
+  }
+  .memory-left {
+    border-right: 0;
+    border-bottom: 1px solid #d6c7af;
+    box-shadow: inset 0 -12px 15px -18px #49361d;
+  }
+  .memory-right {
+    box-shadow: inset 0 12px 15px -18px #49361d;
+  }
+  .polaroid {
+    margin: 0 0 12px;
+    padding: 12px 12px 20px;
+    transform: rotate(-1deg);
+  }
+  .polaroid-caption h3 {
+    font-size: 31px;
+  }
+  .memory-meta {
+    font-size: 12px;
+  }
+  .memory-stickers {
+    gap: 6px;
+  }
+  .memory-page-title {
+    font-size: 28px;
+  }
+  .memory-page-title svg {
+    display: none;
+  }
+  .memory-note {
+    padding: 16px 14px;
+  }
+  .memory-note h3 {
+    font-size: 28px;
+  }
+  .memory-note textarea {
+    font-size: 16px;
+  }
+  .memory-cover {
+    min-height: 460px;
+    padding: 55px 24px 40px;
+  }
+  .memory-cover h3 {
+    font-size: 48px;
+  }
+  .book-controls {
+    gap: 8px;
+  }
+  .book-controls > div {
+    gap: 0 8px;
+  }
+  .book-controls > div > span {
+    font-size: 12px;
+  }
+  .book-contents {
+    padding: 16px;
+  }
+  .book-contents button {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .book-contents button strong {
+    flex-basis: 65%;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .scrapbook {
+    animation: none;
+  }
+}

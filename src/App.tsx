@@ -50,6 +50,9 @@ import {
 } from "./ical";
 import { demoData } from "./demo";
 import { Ideas } from "./Ideas";
+import { MemoryBook, MemoryEditor } from "./Memories";
+import { useMemories } from "./useMemories";
+import type { MemorySeed } from "./memoryData";
 import { exampleIdeas, type Idea, type IdeaDraft } from "./dateIdeas";
 import { registerSW } from "virtual:pwa-register";
 import type {
@@ -646,7 +649,11 @@ export default function App() {
       () => new Date(new Date().getFullYear(), new Date().getMonth(), 1),
     ),
     [selected, setSelected] = useState<string | null>(null);
-  const [tab, setTab] = useState<"agenda" | "alphabet" | "favorites">("agenda");
+  const [tab, setTab] = useState<
+    "agenda" | "alphabet" | "favorites" | "memories"
+  >("agenda");
+  const [memorySeed, setMemorySeed] = useState<MemorySeed | null>(null);
+  const [activeMemory, setActiveMemory] = useState<string | null>(null);
   const [draft, setDraft] = useState<IdeaDraft | undefined>();
   const [ideas, setIdeas] = useState<Idea[]>(() =>
     isDemo ? exampleIdeas.map((i) => ({ ...i })) : [],
@@ -689,6 +696,25 @@ export default function App() {
     userId = isDemo ? "demo-" + demoPersona : session?.user.id;
   const me = snapshot.members.find((m) => m.user_id === userId),
     ownRequest = snapshot.requests.find((r) => r.user_id === userId);
+  const memoryBook = useMemories(me, snapshot.members, isDemo);
+  const memoryKeys = new Set(memoryBook.memories.map((m) => m.source_key));
+  function openMemory(seed: MemorySeed) {
+    const existing = memoryBook.memories.find(
+      (m) => seed.source_key && m.source_key === seed.source_key,
+    );
+    if (existing) {
+      setActiveMemory(existing.id);
+      setTab("memories");
+    } else setMemorySeed(seed);
+  }
+  const newMemory = () =>
+    setMemorySeed({
+      title: "",
+      memory_date: localInput(new Date().toISOString()).slice(0, 10),
+      location: "",
+      letter: null,
+      source_key: null,
+    });
   const notify = useCallback((text: string, error = false) => {
     setNotice(text);
     setNoticeError(error);
@@ -858,6 +884,8 @@ export default function App() {
     setExporting(null);
     setAttending(null);
     setSettings(false);
+    setMemorySeed(null);
+    setActiveMemory(null);
     if (userId) void load();
   }, [userId, load]);
   useEffect(() => {
@@ -1391,34 +1419,40 @@ export default function App() {
           </section>
         ) : (
           <>
-            <section className="page-heading">
-              <div>
-                <span className="eyebrow">
-                  <span className="tiny-heart">♡</span> KLEINE PLANNEN, MOOIE
-                  HERINNERINGEN
-                </span>
-                <h1>
-                  Onze agenda<span className="heading-dot">.</span>
-                </h1>
-                <p>Alles waar we samen naar uitkijken.</p>
-              </div>
-              <button
-                className="primary add-plan"
-                onClick={() => {
-                  setDraft(undefined);
-                  setEditor(null);
-                }}
-              >
-                <Plus size={18} />
-                Activiteit toevoegen
-              </button>
-            </section>
-            <nav className="page-tabs" aria-label="Jullie agenda en ideeën">
+            {tab !== "memories" && (
+              <section className="page-heading">
+                <div>
+                  <span className="eyebrow">
+                    <span className="tiny-heart">♡</span> KLEINE PLANNEN, MOOIE
+                    HERINNERINGEN
+                  </span>
+                  <h1>
+                    Onze agenda<span className="heading-dot">.</span>
+                  </h1>
+                  <p>Alles waar we samen naar uitkijken.</p>
+                </div>
+                <button
+                  className="primary add-plan"
+                  onClick={() => {
+                    setDraft(undefined);
+                    setEditor(null);
+                  }}
+                >
+                  <Plus size={18} />
+                  Activiteit toevoegen
+                </button>
+              </section>
+            )}
+            <nav
+              className={"page-tabs" + (tab === "memories" ? " book-tabs" : "")}
+              aria-label="Jullie agenda en ideeën"
+            >
               {(
                 [
                   ["agenda", "Agenda"],
                   ["alphabet", "A–Z dates"],
                   ["favorites", "Favorieten"],
+                  ["memories", "Date memories"],
                 ] as const
               ).map(([value, label]) => (
                 <button
@@ -1439,7 +1473,7 @@ export default function App() {
                   </option>
                 ))}
             </datalist>
-            {tab !== "agenda" && (
+            {(tab === "alphabet" || tab === "favorites") && (
               <Ideas
                 key={tab + me.user_id}
                 mode={tab}
@@ -1449,6 +1483,30 @@ export default function App() {
                 onRetry={() => void loadIdeas()}
                 onSave={saveIdea}
                 onPlan={planIdea}
+                isRemembered={(idea) => memoryKeys.has("idea:" + idea.id)}
+                onMemory={(idea) =>
+                  openMemory({
+                    title: idea.title,
+                    memory_date: localInput(new Date().toISOString()).slice(
+                      0,
+                      10,
+                    ),
+                    location: idea.location,
+                    letter: idea.letter,
+                    source_key: "idea:" + idea.id,
+                  })
+                }
+              />
+            )}
+            {tab === "memories" && (
+              <MemoryBook
+                book={memoryBook}
+                me={me}
+                demo={isDemo}
+                selected={activeMemory}
+                onSelect={setActiveMemory}
+                onNew={newMemory}
+                onEdit={setMemorySeed}
               />
             )}
             {tab === "agenda" && (
@@ -1799,6 +1857,43 @@ export default function App() {
                                     : "Ik ben aanwezig"}
                                 </button>
                                 <IconButton
+                                  label={`${memoryKeys.has("event:" + event.id + ":" + new Date(event.occurrence_start).toISOString()) ? "Open herinnering" : "Bewaar in Date memories"}: ${event.title}`}
+                                  onClick={() =>
+                                    openMemory({
+                                      title: event.title,
+                                      memory_date: localInput(
+                                        event.occurrence_start,
+                                      ).slice(0, 10),
+                                      location: event.location,
+                                      letter: null,
+                                      source_key:
+                                        "event:" +
+                                        event.id +
+                                        ":" +
+                                        new Date(
+                                          event.occurrence_start,
+                                        ).toISOString(),
+                                    })
+                                  }
+                                >
+                                  <Heart
+                                    size={19}
+                                    className="memory-heart"
+                                    fill={
+                                      memoryKeys.has(
+                                        "event:" +
+                                          event.id +
+                                          ":" +
+                                          new Date(
+                                            event.occurrence_start,
+                                          ).toISOString(),
+                                      )
+                                        ? "currentColor"
+                                        : "none"
+                                    }
+                                  />
+                                </IconButton>
+                                <IconButton
                                   label={`Voeg ${event.title} toe aan persoonlijke agenda`}
                                   onClick={() =>
                                     setExporting(
@@ -1867,6 +1962,19 @@ export default function App() {
           </>
         )}
       </main>
+      {me && memorySeed && (
+        <MemoryEditor
+          key={memorySeed.id || memorySeed.source_key || "new-memory"}
+          seed={memorySeed}
+          onClose={() => setMemorySeed(null)}
+          onSave={async (seed) => {
+            const id = await memoryBook.save(seed);
+            setActiveMemory(id);
+            setTab("memories");
+            setMemorySeed(null);
+          }}
+        />
+      )}
       {me && editor !== undefined && (
         <EventEditor
           key={editor?.id || "new"}

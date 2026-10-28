@@ -22,6 +22,8 @@ export function Ideas({
   onRetry,
   onSave,
   onPlan,
+  onMemory,
+  isRemembered,
 }: {
   mode: "alphabet" | "favorites";
   ideas: Idea[];
@@ -30,6 +32,8 @@ export function Ideas({
   onRetry: () => void;
   onSave: (idea: Idea) => Promise<void>;
   onPlan: (idea: IdeaDraft) => void;
+  onMemory: (idea: Idea) => void;
+  isRemembered: (idea: Idea) => boolean;
 }) {
   const [letter, setLetter] = useState("A");
   const [category, setCategory] = useState<"date" | "location">("date");
@@ -333,6 +337,19 @@ export function Ideas({
                 <p className="idea-description">{idea.description}</p>
               )}
               <div className="idea-actions">
+                {kind !== "location" && (
+                  <button
+                    className="quiet memory-heart"
+                    onClick={() => onMemory(idea)}
+                    aria-label={`${isRemembered(idea) ? "Open herinnering" : "Bewaar in Date memories"}: ${idea.title}`}
+                  >
+                    <Heart
+                      size={17}
+                      fill={isRemembered(idea) ? "currentColor" : "none"}
+                    />
+                    {isRemembered(idea) ? "In ons boek" : "Bewaar herinnering"}
+                  </button>
+                )}
                 <button
                   className="secondary"
                   disabled={busy}

@@ -142,6 +142,50 @@ gebruikt een archiefvlag. Er worden geen voorbeeldideeën in de echte database g
 toegang, validatie en terugzetten. Alle testmutaties worden teruggedraaid binnen
 de transactie; de test vereist twee bestaande leden en verzendt geen mail.
 
+### Date memories
+
+Het boek staat in een aparte tab met een linnen kaft, papieren pagina's,
+één foto per herinnering, bladeren en een inhoudsopgave. Hartjes bij agenda-items
+en date-ideeën openen een bestaand boekitem of bewaren een nieuwe herinnering.
+Dezelfde bron wordt niet dubbel toegevoegd. Herhaalafspraken krijgen per datum
+een eigen herinnering. Losse herinneringen zijn ook rechtstreeks toe te voegen.
+
+Beide leden schrijven uitsluitend hun eigen moment (maximaal 5000 tekens).
+Een niet-leeg verhaal telt pas na ‘Mijn moment bewaren’. Voor de onthulling
+levert `memory_book()` alleen de eigen tekst en de bewaarstatus van de ander.
+De andere tekst blijft server-side in `duo_private.memory_stories`, zonder
+rechtstreekse clienttoegang. Na het tweede moment legt de database de onthulling
+vast, onder een rijvergrendeling. Daarna blijven beide verhalen leesbaar, ook
+wanneer iemand zijn eigen tekst aanvult. Concepten blijven tijdens bladeren en
+tabwissels in het geheugen; ze worden niet op schijf opgeslagen. Bewaar een
+moment vóór het afsluiten van de app.
+
+Foto's staan in de private Storage-bucket `date-memories`, met toegang voor
+bevestigde leden. De client toont tijdelijke fotolinks van 15 minuten en
+vernieuwt deze tijdens een open boekpagina. Uploads worden lokaal naar JPEG
+omgezet, maximaal 1600 pixels aan de lange zijde, zonder overgenomen
+EXIF-locatiegegevens. JPG, PNG en WebP zijn ondersteund; HEIC alleen wanneer de
+browser het kan openen. Een niet-ondersteunde HEIC-foto krijgt een melding om
+een JPG/PNG te kiezen. De oorspronkelijke invoer mag maximaal 25 MB groot zijn.
+Eén foto staat op de pagina; een nieuwe keuze vervangt die verwijzing. Eerdere
+uploads blijven bewaard en kunnen niet door de client worden overschreven of
+verwijderd. Persoonlijke foto's en verhalen komen niet in de PWA-offlinecache.
+
+`date-memories.sql` is op 28 oktober 2026 toegepast als migratie
+`private_date_memory_book`. Niet opnieuw uitvoeren. `date-memories-test.sql`
+controleert de onthulling, eigen verhaal versus andermans verhaal, bronduplicaten,
+ongeldige invoer, niet-leden en anonieme toegang. Alle testgegevens worden binnen
+de transactie teruggedraaid. De Security Advisor-informatie ‘RLS enabled no
+policy’ op de private verhalentabel is opzettelijk: alleen de gecontroleerde
+functies mogen die tabel benaderen.
+
+De demo gebruikt fictieve teksten en een AI-voorbeeldfoto in
+`public/demo-memory-beach.png`. Deze staat uitsluitend in de openbare demo en
+wordt niet vooraf gedownload voor de echte agenda. Gemaakt met de ingebouwde
+ImageGen-tool, met deze prompt:
+
+> Create a single photorealistic candid travel photograph for a fictional example entry in a Dutch couple's personal scrapbook website. Landscape 4:3 composition. Two ceramic mugs of hot chocolate on a warm knitted beige blanket in the foreground of a quiet Dutch dune beach, marram grass near the edge, North Sea waves, warm orange sunset and lavender sky. Intimate, natural and softly nostalgic, believable photography, subtle film grain, clear detail, gentle warm colors. No people, no text, no typography, no logo, no watermark, no book frame, no polaroid border, no UI. This will be exactly one photo inside a scrapbook; generate only the photograph itself.
+
 ### Hosting
 
 De gebruiker heeft op 27 oktober 2026 toestemming gegeven om de broncode openbaar

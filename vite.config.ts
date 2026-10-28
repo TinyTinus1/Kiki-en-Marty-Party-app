@@ -30,6 +30,7 @@ export default defineConfig({
       workbox: {
         navigateFallback: "index.html",
         globPatterns: ["**/*.{js,css,html,png,svg,woff2}"],
+        globIgnores: ["**/demo-memory-beach.png"],
         runtimeCaching: [],
       },
     }),
